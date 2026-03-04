@@ -108,14 +108,16 @@ export default function Sidebar() {
           gap: 8,
         }}
       >
-        <img
-          src="/goatlabs-logo.jpeg"
-          alt="GoatLabs"
-          style={{ height: 32, objectFit: 'contain', borderRadius: 6 }}
-        />
-        <span style={{ color: c.accent, fontFamily: 'monospace', fontSize: 11, fontWeight: 700, letterSpacing: 1 }}>
-          OS
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <img
+            src="/favicon.png"
+            alt="GoatLabs"
+            style={{ width: 28, height: 28, objectFit: 'contain' }}
+          />
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#00D4D8', letterSpacing: '-0.3px' }}>
+            GoatLabs
+          </span>
+        </div>
       </div>
 
       {/* Nav */}
