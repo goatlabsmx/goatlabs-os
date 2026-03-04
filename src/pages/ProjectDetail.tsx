@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import Topbar from '../components/layout/Topbar'
@@ -10,7 +10,7 @@ import EditProjectDialog from '../components/project/EditProjectDialog'
 import { useProject, useUpdateProject } from '../hooks/useProjects'
 import { useTasks } from '../hooks/useTasks'
 import { useContentItems } from '../hooks/useContentItems'
-import type { TaskArea, ProjectStatus, ValidationStatus, ProjectAccount } from '../types'
+import type { TaskArea, ValidationStatus, ProjectAccount } from '../types'
 
 const c = {
   bg: '#0a0a0b',
@@ -36,15 +36,6 @@ const cardStyle: React.CSSProperties = {
   border: `1px solid ${c.border}`,
   borderRadius: 10,
   padding: 16,
-}
-
-const sectionLabel: React.CSSProperties = {
-  fontSize: 9.5,
-  fontFamily: 'monospace',
-  color: c.dim,
-  textTransform: 'uppercase',
-  letterSpacing: '0.07em',
-  marginBottom: 8,
 }
 
 const validationOptions: ValidationStatus[] = ['Sin validar', 'Validada parcialmente', 'Validada', 'Descartada']
