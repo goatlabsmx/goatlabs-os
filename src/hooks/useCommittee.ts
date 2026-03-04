@@ -112,7 +112,7 @@ Citas casos reales cuando es relevante. Máximo 120 palabras.`
   }
 ]
 
-async function callClaude(systemPrompt: string, conversationHistory: { role: 'user' | 'assistant', content: string }[], userMessage: string): Promise<string> {
+async function callClaude(systemPrompt: string, conversationHistory: { role: 'user' | 'assistant', content: string }[], userMessage: string, maxTokens: number = 400): Promise<string> {
   const response = await fetch('/api/committee', {
     method: 'POST',
     headers: {
@@ -120,7 +120,7 @@ async function callClaude(systemPrompt: string, conversationHistory: { role: 'us
     },
     body: JSON.stringify({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 400,
+      max_tokens: maxTokens,
       system: systemPrompt,
       messages: [
         ...conversationHistory,
@@ -211,7 +211,8 @@ export function useCommittee(project: Project) {
       const synthesis = await callClaude(
         MEMBERS[0].systemPrompt(project),
         conversationSoFar,
-        `Has escuchado a todos los miembros. Sintetiza los insights más importantes y da exactamente 3 acciones concretas y priorizadas para el proyecto. Cierra la sesión formalmente.`
+        `Has escuchado a todos los miembros. Sintetiza los insights más importantes y da exactamente 3 acciones concretas y priorizadas para el proyecto. Cierra la sesión formalmente.`,
+        1200
       )
 
       const synthMsg: CommitteeMessage = {
