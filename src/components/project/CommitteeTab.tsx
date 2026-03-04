@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useCommittee } from '../../hooks/useCommittee'
+import { useCommitteeSessions } from '../../hooks/useCommitteeSessions'
 import type { Project } from '../../types'
 
 const c = {
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export default function CommitteeTab({ project }: Props) {
+  useCommitteeSessions(project.id)
   const { sessions, currentSession, loading, openSession, askQuestion, setCurrentSession } = useCommittee(project)
   const [objective, setObjective] = useState('')
   const [question, setQuestion] = useState('')
@@ -126,14 +128,14 @@ export default function CommitteeTab({ project }: Props) {
               <div style={{ fontSize: 10, fontFamily: 'monospace', color: c.dim, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Miembros del committee</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {[
-                  { name: 'Chair', emoji: '[Chair]' },
-                  { name: 'CFO', emoji: '[CFO]' },
-                  { name: 'CMO', emoji: '[CMO]' },
-                  { name: 'CTO', emoji: '[CTO]' },
-                  { name: 'Usuario', emoji: '[Usuario]' },
-                  { name: "Devil's Advocate", emoji: '[DA]' },
-                  { name: 'Investor', emoji: '[Investor]' },
-                  { name: 'Historiador', emoji: '[Hist]' },
+                  { name: 'Chair', emoji: '🎯' },
+                  { name: 'CFO', emoji: '💰' },
+                  { name: 'CMO', emoji: '📣' },
+                  { name: 'CTO', emoji: '⚙️' },
+                  { name: 'Usuario', emoji: '👤' },
+                  { name: "Devil's Advocate", emoji: '😈' },
+                  { name: 'Investor', emoji: '📈' },
+                  { name: 'Historiador', emoji: '📚' },
                 ].map(m => (
                   <div key={m.name} style={{
                     display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px',

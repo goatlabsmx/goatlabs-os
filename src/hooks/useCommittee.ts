@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import type { Project } from '../types'
+import { useCommitteeSessions, useSaveCommitteeSession } from './useCommitteeSessions'
 
 export interface CommitteeMessage {
   id: string
@@ -19,11 +20,41 @@ export interface CommitteeSession {
   createdAt: Date
 }
 
+function rowToSession(row: { id: string; objective: string; status: 'open' | 'closed'; messages: any[]; summary?: string | null; created_at: string }): CommitteeSession {
+  return {
+    id: row.id,
+    objective: row.objective,
+    status: row.status,
+    messages: (row.messages || []).map((m: any) => ({
+      ...m,
+      timestamp: typeof m.timestamp === 'string' ? new Date(m.timestamp) : (m.timestamp instanceof Date ? m.timestamp : new Date()),
+    })),
+    summary: row.summary ?? undefined,
+    createdAt: new Date(row.created_at),
+  }
+}
+
+function sessionToRow(session: CommitteeSession, projectId: string) {
+  return {
+    id: session.id,
+    project_id: projectId,
+    objective: session.objective,
+    status: session.status,
+    messages: session.messages.map(m => ({
+      ...m,
+      timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : m.timestamp,
+    })),
+    summary: session.summary ?? null,
+    created_at: session.createdAt instanceof Date ? session.createdAt.toISOString() : session.createdAt,
+    updated_at: new Date().toISOString(),
+  }
+}
+
 const MEMBERS = [
   {
     name: 'Chair',
     role: 'Facilitador del Committee',
-    emoji: '[Chair]',
+    emoji: '🎯',
     systemPrompt: (project: Project) => `Eres el Chair de un comité de expertos para el proyecto "${project.name}". 
 Tu trabajo es orquestar la sesión, presentar el contexto del proyecto a los miembros, dirigir preguntas al experto correcto, y al final sintetizar los insights en 3 acciones concretas.
 Siempre te anuncias como "**Chair:**" al inicio de tu mensaje.
@@ -42,7 +73,7 @@ Sé directo, conciso y orientado a acción. Máximo 150 palabras por mensaje.`
   {
     name: 'CFO',
     role: 'Finanzas & Unit Economics',
-    emoji: '[CFO]',
+    emoji: '💰',
     systemPrompt: (project: Project) => `Eres el CFO del comité para el proyecto "${project.name}".
 Tu perspectiva es financiera: unit economics, pricing, runway, CAC, LTV, breakeven.
 Siempre te anuncias como "**CFO:**" al inicio de tu mensaje.
@@ -53,7 +84,7 @@ Máximo 120 palabras. Ve directo al punto financiero.`
   {
     name: 'CMO',
     role: 'Growth & Marketing',
-    emoji: '[CMO]',
+    emoji: '📣',
     systemPrompt: (project: Project) => `Eres el CMO del comité para el proyecto "${project.name}".
 Tu perspectiva es growth: canales de adquisición, posicionamiento, contenido, retención.
 Siempre te anuncias como "**CMO:**" al inicio de tu mensaje.
@@ -63,7 +94,7 @@ Eres creativo pero orientado a métricas. Máximo 120 palabras.`
   {
     name: 'CTO',
     role: 'Tecnología & Producto',
-    emoji: '[CTO]',
+    emoji: '⚙️',
     systemPrompt: (project: Project) => `Eres el CTO del comité para el proyecto "${project.name}".
 Tu perspectiva es técnica y de producto: stack, deuda técnica, AI, roadmap, qué construir primero.
 Siempre te anuncias como "**CTO:**" al inicio de tu mensaje.
@@ -72,7 +103,7 @@ Eres pragmático — prefieres ship rápido sobre perfección. Máximo 120 palab
   {
     name: 'Usuario',
     role: 'Voz del Cliente',
-    emoji: '[Usuario]',
+    emoji: '👤',
     systemPrompt: (project: Project) => `Eres un usuario representativo del proyecto "${project.name}".
 Hablas desde la perspectiva del cliente final. Qué dolores tienes, qué valoras, qué te frenaría de pagar o usar el producto.
 Siempre te anuncias como "**Usuario:**" al inicio de tu mensaje.
@@ -82,7 +113,7 @@ Sé honesto, a veces incómodo. Máximo 100 palabras.`
   {
     name: 'Devil\'s Advocate',
     role: 'Crítico & Escéptico',
-    emoji: '[DA]',
+    emoji: '😈',
     systemPrompt: (project: Project) => `Eres el Devil's Advocate del comité para "${project.name}".
 Tu trabajo es destruir ideas, encontrar los hoyos, hacer las preguntas incómodas que nadie quiere hacer.
 Siempre te anuncias como "**Devil's Advocate:**" al inicio de tu mensaje.
@@ -93,7 +124,7 @@ Sé brutal pero constructivo. Máximo 120 palabras.`
   {
     name: 'Investor',
     role: 'Perspectiva de Inversión',
-    emoji: '[Investor]',
+    emoji: '📈',
     systemPrompt: (project: Project) => `Eres un angel investor evaluando el proyecto "${project.name}".
 Tu perspectiva: ¿vale la pena seguir? ¿Es escalable? ¿Cuál es el exit? ¿Qué métricas importan ahora?
 Siempre te anuncias como "**Investor:**" al inicio de tu mensaje.
@@ -103,7 +134,7 @@ Eres frío, orientado a retorno. Máximo 120 palabras.`
   {
     name: 'Historiador',
     role: 'Contexto & Patrones',
-    emoji: '[Hist]',
+    emoji: '📚',
     systemPrompt: (project: Project) => `Eres el Historiador del comité para "${project.name}".
 Tu trabajo es traer contexto: qué han hecho empresas similares, qué patrones se repiten en startups en esta fase, qué errores son comunes.
 Siempre te anuncias como "**Historiador:**" al inicio de tu mensaje.
@@ -139,9 +170,15 @@ async function callClaude(systemPrompt: string, conversationHistory: { role: 'us
 }
 
 export function useCommittee(project: Project) {
-  const [sessions, setSessions] = useState<CommitteeSession[]>([])
+  const { data: sessionsData } = useCommitteeSessions(project.id)
+  const saveSessionMutation = useSaveCommitteeSession()
+  const sessions = useMemo(() => (sessionsData ?? []).map(rowToSession), [sessionsData])
   const [currentSession, setCurrentSession] = useState<CommitteeSession | null>(null)
   const [loading, setLoading] = useState(false)
+
+  const upsertSession = (session: CommitteeSession) => {
+    saveSessionMutation.mutate(sessionToRow(session, project.id))
+  }
 
   const openSession = async (objective: string) => {
     const session: CommitteeSession = {
@@ -152,7 +189,6 @@ export function useCommittee(project: Project) {
       createdAt: new Date()
     }
     setCurrentSession(session)
-    setSessions(prev => [session, ...prev])
     setLoading(true)
 
     try {
@@ -167,14 +203,14 @@ export function useCommittee(project: Project) {
         id: crypto.randomUUID(),
         member: 'Chair',
         role: 'Facilitador',
-        emoji: '[Chair]',
+        emoji: '🎯',
         content: openingMessage,
         timestamp: new Date()
       }
 
       session.messages = [firstMessage]
       setCurrentSession({ ...session })
-      setSessions(prev => prev.map(s => s.id === session.id ? { ...session } : s))
+      upsertSession({ ...session })
 
       // Each member gives their perspective
       const conversationSoFar: { role: 'user' | 'assistant', content: string }[] = [
@@ -204,7 +240,7 @@ export function useCommittee(project: Project) {
 
         session.messages = [...session.messages, msg]
         setCurrentSession({ ...session })
-        setSessions(prev => prev.map(s => s.id === session.id ? { ...session } : s))
+        upsertSession({ ...session })
       }
 
       // Chair closes with synthesis
@@ -219,7 +255,7 @@ export function useCommittee(project: Project) {
         id: crypto.randomUUID(),
         member: 'Chair',
         role: 'Síntesis final',
-        emoji: '[Chair]',
+        emoji: '🎯',
         content: synthesis,
         timestamp: new Date()
       }
@@ -228,7 +264,7 @@ export function useCommittee(project: Project) {
       session.status = 'closed'
       session.summary = synthesis
       setCurrentSession({ ...session })
-      setSessions(prev => prev.map(s => s.id === session.id ? { ...session } : s))
+      upsertSession({ ...session })
 
     } catch (error) {
       console.error('Committee error:', error)
@@ -257,7 +293,7 @@ export function useCommittee(project: Project) {
         id: crypto.randomUUID(),
         member: 'Chair',
         role: 'Facilitador',
-        emoji: '[Chair]',
+        emoji: '🎯',
         content: chairResponse,
         timestamp: new Date()
       }
@@ -287,7 +323,7 @@ export function useCommittee(project: Project) {
       }
 
       setCurrentSession(updatedSession)
-      setSessions(prev => prev.map(s => s.id === updatedSession.id ? updatedSession : s))
+      upsertSession(updatedSession)
 
     } catch (error) {
       console.error('Committee error:', error)
