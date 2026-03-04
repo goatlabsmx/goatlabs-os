@@ -113,15 +113,10 @@ Citas casos reales cuando es relevante. Máximo 120 palabras.`
 ]
 
 async function callClaude(systemPrompt: string, conversationHistory: { role: 'user' | 'assistant', content: string }[], userMessage: string): Promise<string> {
-  const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
-  
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const response = await fetch('/api/committee', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-client-side-allow': 'true'
     },
     body: JSON.stringify({
       model: 'claude-haiku-4-5-20251001',
