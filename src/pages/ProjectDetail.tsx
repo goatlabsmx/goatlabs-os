@@ -11,6 +11,7 @@ import { useProject, useUpdateProject } from '../hooks/useProjects'
 import { useTasks } from '../hooks/useTasks'
 import { useContentItems } from '../hooks/useContentItems'
 import type { TaskArea, ValidationStatus, ProjectAccount } from '../types'
+import CommitteeTab from '../components/project/CommitteeTab'
 
 const c = {
   bg: '#0a0a0b',
@@ -27,8 +28,7 @@ const c = {
   red: '#ef4444',
   blue: '#3b82f6',
 }
-
-const tabs = ['Pulse', 'Build', 'Contenido', 'Crecimiento', 'Finanzas', 'Notas & Cuentas'] as const
+const tabs = ['Pulse', 'Build', 'Contenido', 'Crecimiento', 'Finanzas', 'Notas & Cuentas', 'Committee'] as const
 type Tab = typeof tabs[number]
 
 const cardStyle: React.CSSProperties = {
@@ -217,6 +217,7 @@ export default function ProjectDetail() {
           </div>
         )}
         {activeTab === 'Notas & Cuentas' && <NotasTab project={project} save={save} />}
+        {activeTab === 'Committee' && <CommitteeTab project={project} />}
       </div>
 
       {editOpen && <EditProjectDialog project={project} open={editOpen} onClose={() => setEditOpen(false)} />}
